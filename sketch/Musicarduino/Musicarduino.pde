@@ -25,8 +25,9 @@ volatile int time = 0;
 volatile int next_time = 0;
 // 次に出力するデータ
 volatile int data = 0;
+volatile int state = 0;
 
-void loadNextNote() {
+bool readNextNote() {
     NOTE *note = getNextNote();
     if (note == 0) {
       clearNote();
@@ -34,10 +35,13 @@ void loadNextNote() {
       push_state = 0;
       next_time = 0;
       data = 0;
-      return;
+      state = 0;
+      MsTimer2::stop();
+      return false;
     }
     next_time = getNextTime(note);
     data = getData(note);
+    return true;
 }
 
 // ボタンが押されるたびに呼ばれる関数
@@ -45,8 +49,8 @@ void push() {
   if (push_state == 0) {
     // 初めてボタンが押されたので処理を開始する
     push_state = 1;
-    loadNextNote(); // 初回ノートを読みだしておく
     MsTimer2::start();             // タイマー割り込み開始
+    readNextNote(); // 初回ノートを読みだしておく
   }
 }
 
@@ -55,17 +59,15 @@ void timer() {
   // 次のデータの時間になった
   if (time >= next_time) {
     PORTB = data;
-    loadNextNote();
+    if (!readNextNote()) return;
   }
   // 演奏時間を1ms進める
   time++;
 }
 
 void setup() {
-#ifndef INPUT
-  initComponents();
-#endif
   // initialize
+  Serial.begin(9600);
 
   pinMode(D2,  INPUT_PULLUP);  // Switch:Push
   pinMode(D8, OUTPUT);  // Led:Red
@@ -75,11 +77,19 @@ void setup() {
   pinMode(D12, OUTPUT);  // Led:Red
   pinMode(D13, OUTPUT);  // Arduino:uno_r3
 
+  loadNote();  // リングバッファにデータをロードしておく
   MsTimer2::set(1, timer);     // 1ms毎にtimer( )割込み関数を呼び出す様に設定
   attachInterrupt(0, push, FALLING);  // PIN2がHIGH->LOW(ボタンが押された時)にpushを呼ぶ
 }
 
 void loop() {
+  if (state = 0) {
+    // 常にバッファを貯めておく
+    if (!loadNote()) {
+      state = 1;
+    }
+  }
+  delay(1);
 }
 
 

@@ -11,37 +11,34 @@ typedef struct NOTE {
   byte t3;
 };
 
-const unsigned int music_data[] PROGMEM = {0x9F00, 0x0000, 0x8000, 0x0400, 0x0, 0x0};
-volatile int music_index = 0;
-
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 128
 NOTE notes[BUFFER_SIZE];
-//volatile int note_index_read = 0;
-//volatile int note_index_write = 0;
-
-void convert(unsigned long value, struct NOTE* note) {
-  note->t3 = value & 0xff;
-  value >>= 8;
-  note->t2 = value & 0xff;
-  value >>= 8;
-  note->t1 = value & 0xff;
-  value >>= 8;
-  note->data = value & 0xff;
-}
+volatile int note_index_read = 0;
+volatile int note_index_write = 0;
+volatile int note_index_count = 0;
 
 struct NOTE *getNextNote() {
-  unsigned long value = (unsigned long)pgm_read_word_near(music_data + music_index*2) << 16 + (unsigned long)pgm_read_word_near(music_data + (music_index*2 + 1));
-  if (value == 0) {
-    return 0;
+  return dequeue();
+}
+
+bool loadNote() {
+  while (!is_full()) {
+    NOTE *note = getLast();
+    if (note == 0) return true;
+    bool ret = getNextNote(note);
+    enqueue();
+    if (!ret) {
+      return false; // 終了マーク読み出し
+    }
   }
-  music_index++;
-  convert(value, &notes[0]);
-  return &notes[0];
+  return true;
 }
 
 void clearNote() {
-  music_index = 0;
-//  note_index_read = 0;
+  clearMusic();
+  note_index_read = 0;
+  note_index_write = 0;
+  note_index_count = 0;
 }
 
 int getNextTime(NOTE *note) {
@@ -50,5 +47,38 @@ int getNextTime(NOTE *note) {
 
 int getData(NOTE *note) {
   return note->data;
+}
+
+bool is_full(){
+  return note_index_count == BUFFER_SIZE;
+}
+
+struct NOTE* getLast() {
+  if (is_full()) return 0;
+  return &notes[note_index_write];
+}
+
+bool enqueue() {
+  if (is_full()) return false;
+  note_index_write++;
+  note_index_count++;
+  if (note_index_write == BUFFER_SIZE)
+    note_index_write = 0;
+  return true;
+}
+
+bool is_empty() {
+  return note_index_count == 0;
+}
+
+struct NOTE* dequeue(){
+  if (is_empty()) {
+    return 0;
+  }
+  NOTE *x = &notes[note_index_read++];
+  note_index_count--;
+  if (note_index_read == BUFFER_SIZE)
+    note_index_read = 0;
+  return x;
 }
 
