@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import cv
 import cv2
 import sys
 
@@ -11,6 +12,8 @@ right = 530
 right2 = 546
 # 譜面真ん中(4小節目)
 centor = (left + right)/2
+# 1小節分の大きさ
+measure = (right - left)/8
 
 # 1番目の譜面取得タイミング(4〜8小節目ノートを拾うタイミング)
 # 譜面トップ
@@ -34,8 +37,12 @@ base2_1 = base1 + base_diff
 base2_2 = base2 + base_diff
 base2_3 = base3 + base_diff
 
+bases = [[base1, base2, base3],[base2_1,base2_2,base2_3]]
 
-
+# 判定マージン
+mergine = 2
+# 時間マージン
+time_mergine = 200
 
 cap = cv2.VideoCapture(sys.argv[1])
 x_template = cv2.imread("x_template.png")
@@ -43,6 +50,7 @@ x_template = cv2.cvtColor(x_template,cv2.COLOR_BGR2GRAY)
 template_width = x_template.shape[0]
 template_height = x_template.shape[1]
 
+prev_time = 0
 while(cap.isOpened()):
     ret, frame = cap.read()
     ## Canny
@@ -73,6 +81,7 @@ while(cap.isOpened()):
 
     ## lines fast and detect. good.
     lines = cv2.HoughLines(canny,1,np.pi/10,200)
+    count = [0,0]
     for line in lines:
         for rho,theta in line:
             a = np.cos(theta)
@@ -84,6 +93,25 @@ while(cap.isOpened()):
             x2 = int(x0 - 1000*(-b))
             y2 = int(y0 - 1000*(a))
             cv2.line(draw,(x1,y1),(x2,y2),(0,0,255),2)
+            index = 0
+            for base3 in bases:
+                for base in base3:
+                    if abs(y1 - base) < mergine:
+                        count[index] = count[index] + 1
+                index = index + 1
+    time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+    if (time - prev_time) > time_mergine:
+        if count[0] >= 3:
+            print "fire1!! %d" % (time)
+            cut = canny[top:bottom, centor-measure:right2]
+            cv2.imshow("fire1!!", cut)
+            prev_time = time
+        if count[1] >= 3:
+            time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
+            print "fire2!! %d" % (time)
+            cut = canny[top2:bottom2, left:centor]
+            cv2.imshow("fire2!!", cut)
+            prev_time = time
     
     ## circles detect multi... bad.
     #circles = cv2.HoughCircles(canny,cv2.HOUGH_GRADIENT,1,10, param1=20,param2=20,minRadius=10,maxRadius=20)
