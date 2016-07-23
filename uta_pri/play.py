@@ -49,9 +49,9 @@ print [base2_1,base2_2,base2_3]
 # 判定マージン
 mergine = 1
 # 時間マージン
-time_mergine = 200
+time_mergine = 50
 # テンプレートマッチングの閾値
-threshold = 0.29
+threshold = 0.28
 
 cap = cv2.VideoCapture(sys.argv[1])
 template_names = ["arrow_template.png","tri_template.png","o_template.png","x_template.png"]
@@ -60,14 +60,29 @@ for template_name in template_names:
     template = cv2.imread(template_name)
     template = cv2.cvtColor(template,cv2.COLOR_BGR2GRAY)
     templates.append(template)
+template_top = []
+template_bottom = []
+# 矢印ノートの上下限
+template_top.append(0)
+template_bottom.append(base1-top+4)
+# 三角ノートの上下限
+template_top.append(base1-top-2)
+template_bottom.append(base2-top+2)
+# Oノートの上下限
+template_top.append(base2-top-2)
+template_bottom.append(base3-top+2)
+# xノートの上下限
+template_top.append(base3-top-2)
+template_bottom.append(bottom-top+2)
 #x_template = cv2.imread("x_template.png")
 #x_template = cv2.cvtColor(x_template,cv2.COLOR_BGR2GRAY)
-#template_width = x_template.shape[0]
-#template_height = x_template.shape[1]
+#template_width = x_template.shape[1]
+#template_height = x_template.shape[0]
 
 prev_time = 0
 prev_fire = len(bases)-1
 first_time = 0
+prev_notes = []
 while(cap.isOpened()):
     ret, frame = cap.read()
     ## Canny
@@ -129,27 +144,93 @@ while(cap.isOpened()):
     if count >= 3 and prev_fire != p:
         if first_time == 0:
             first_time = time
-        print "%07d: measure" % (time-first_time)
+        #print "%07d: measure detect" % (time-first_time)   # debug
+        # 前小節のnoteを出力する
         measure_time = time-prev_time
         masure_count = [5,3]
+        prev_notes = sorted(prev_notes, key=lambda note: note[0])
+        if prev_time - first_time >= 0:
+            print "%07d: measure" % (prev_time - first_time)
+        if len(prev_notes) > 0:
+            hits_temp = []
+            hits = []
+            prev_x = -1
+            flag = True
+            for note in prev_notes:
+                flag = False
+                if prev_x == -1:
+                    prev_x = note[0]
+                if prev_x == note[0]:
+                    hits_temp.append(note)
+                    flag = True
+                if prev_x != note[0]:
+                    # 時間の計算のための変数を用意する
+                    ts = set()
+                    x_0 = hits_temp[0][3] # xが0の時の時間
+                    x_diff = measure_time / (measure*4) # xが1進んだ時の時間幅
+                    for hit in hits_temp:
+                        ts.add(hit[2])
+                    hits.append([int(x_0 + prev_x*x_diff), list(ts)])
+                    hits_temp = [note]
+                    prev_x = note[0]
+            # 時間の計算のための変数を用意する
+            ts = set()
+            x_0 = hits_temp[0][3] # xが0の時の時間
+            x_diff = measure_time / (measure*4) # xが1進んだ時の時間幅
+            for hit in hits_temp:
+                ts.add(hit[2])
+            hits.append([int(x_0 + prev_x*x_diff), list(ts)])
+            hits_temp = [note]
+            prev_x = note[0]
+            ts = set()
+            hit_time = hits[0][0] 
+            merged_hits = []
+            for hit in hits:
+                flag = False
+                if hit[0] - hit_time <= time_mergine: # 10ms以下の場合まとめる
+                    ts |= set(hit[1])
+                else:
+                    hit_time = hit[0]
+                    merged_hits.append([hit_time, list(ts)])
+                    ts = set(hit[1])
+            merged_hits.append([hit[0], list(ts)])
+            merged_hits = sorted(merged_hits, key=lambda hit: hit[0])
+            if len(merged_hits) > 0:
+                for hit in merged_hits:
+                    print hit 
+                cv2.waitKey(0)  # for debug
+        #print "%07d: note-%d-%d" % (note[3], note[2])
 
+        left_mergine = 0
         if p == 0:
             cut = canny[top:bottom, centor-(measure/2):right2]
+            left_mergine = measure/2
         if p == 1:
             cut = canny[top2:bottom2, left:centor]
+        notes = []
         for t in range(0, len(templates)):
             template = templates[t]
             matches = cv2.matchTemplate(cut, template, cv2.TM_CCOEFF_NORMED);
+            template_width = template.shape[1]
+            template_height = template.shape[0]
             for y in xrange(matches.shape[0]):
                 for x in xrange(matches.shape[1]):
-                    if matches[y][x] > threshold:
-                        cv2.rectangle(cut, (x, y),
-                                  (x + template.shape[0], y + template.shape[1]),
+                    if matches[y][x] > threshold and y >= template_top[t] and y <= template_bottom[t]:
+                        flag = True
+                        # 重なりを排除すると、除外しすぎてしまう…
+                        #for note in notes:
+                        #    if x - note[0] < template_width/4 and y - note[1] < template_height/4:
+                        #        flag = False
+                        if flag:
+                            notes.append([x-left_mergine+template_width/2, y+template_width/2, t, time-first_time])
+                            cv2.rectangle(cut, (x, y),
+                                  (x + template.shape[1], y + template.shape[0]),
                                   (255, 0, 0), 3)
-                        print "%07d: note-%d" % (time-first_time, t)
+                            #print "%07d: note-%d-%d template-width: %d" % (time-first_time, t, x, template.shape[1])
         cv2.imshow("fire!!" + str(p), cut)
         prev_time = time
         prev_fire = p
+        prev_notes = notes
     
     ## circles detect multi... bad.
     #circles = cv2.HoughCircles(canny,cv2.HOUGH_GRADIENT,1,10, param1=20,param2=20,minRadius=10,maxRadius=20)
