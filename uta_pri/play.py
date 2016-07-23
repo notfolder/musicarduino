@@ -19,7 +19,7 @@ measure = (right - left)/8
 # 譜面トップ
 top = 139
 # 譜面ボトム
-bottom = 259
+bottom = 260
 
 # 3線の1番目
 base1 = 177
@@ -67,6 +67,7 @@ for template_name in template_names:
 
 prev_time = 0
 prev_fire = len(bases)-1
+first_time = 0
 while(cap.isOpened()):
     ret, frame = cap.read()
     ## Canny
@@ -126,15 +127,18 @@ while(cap.isOpened()):
                     count = count + 1
     time = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC)
     if count >= 3 and prev_fire != p:
-        prev_time = time
-        prev_fire = p
-        print "fire%d!! %d" % (p,time)
+        if first_time == 0:
+            first_time = time
+        print "%07d: measure" % (time-first_time)
+        measure_time = time-prev_time
+        masure_count = [5,3]
 
         if p == 0:
-            cut = canny[top:bottom, centor-measure:right2]
+            cut = canny[top:bottom, centor-(measure/2):right2]
         if p == 1:
             cut = canny[top2:bottom2, left:centor]
-        for template in templates:
+        for t in range(0, len(templates)):
+            template = templates[t]
             matches = cv2.matchTemplate(cut, template, cv2.TM_CCOEFF_NORMED);
             for y in xrange(matches.shape[0]):
                 for x in xrange(matches.shape[1]):
@@ -142,7 +146,10 @@ while(cap.isOpened()):
                         cv2.rectangle(cut, (x, y),
                                   (x + template.shape[0], y + template.shape[1]),
                                   (255, 0, 0), 3)
+                        print "%07d: note-%d" % (time-first_time, t)
         cv2.imshow("fire!!" + str(p), cut)
+        prev_time = time
+        prev_fire = p
     
     ## circles detect multi... bad.
     #circles = cv2.HoughCircles(canny,cv2.HOUGH_GRADIENT,1,10, param1=20,param2=20,minRadius=10,maxRadius=20)
