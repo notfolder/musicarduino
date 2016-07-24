@@ -3,6 +3,10 @@ import numpy as np
 import cv
 import cv2
 import sys
+# python -u play.py ~/Downloads/test-music.mp4 | tee score.txt
+if len(sys.argv) <= 1:
+    print "Usage: python -u play.py play_movie.mp4 | tee score.txt"
+    exit(-1)
 
 # 譜面左端
 left = 108
@@ -43,8 +47,9 @@ base2_3 = base3 + base_diff
 bases = []
 for i in range(0,2):
    bases.append([base1 + base_diff_measure*i,base2 + base_diff_measure*i,base3 + base_diff_measure*i]) 
-print bases
-print [base2_1,base2_2,base2_3]
+print "#### START"
+print "#" + str(bases)  # for debug
+print "#" + str([base2_1,base2_2,base2_3])  # for debug
 
 # 判定マージン
 mergine = 1
@@ -144,13 +149,13 @@ while(cap.isOpened()):
     if count >= 3 and prev_fire != p:
         if first_time == 0:
             first_time = time
-        #print "%07d: measure detect" % (time-first_time)   # debug
+        print "# %07d: measure detect" % (time-first_time)   # debug
         # 前小節のnoteを出力する
         measure_time = time-prev_time
         masure_count = [5,3]
         prev_notes = sorted(prev_notes, key=lambda note: note[0])
-        if prev_time - first_time >= 0:
-            print "%07d: measure" % (prev_time - first_time)
+        #if prev_time - first_time >= 0:
+        #    print "%07d: measure" % (prev_time - first_time)
         if len(prev_notes) > 0:
             hits_temp = []
             hits = []
@@ -197,9 +202,8 @@ while(cap.isOpened()):
             merged_hits = sorted(merged_hits, key=lambda hit: hit[0])
             if len(merged_hits) > 0:
                 for hit in merged_hits:
-                    print hit 
+                    print "%07d: %s" % (hit[0], hit[1])
                 cv2.waitKey(0)  # for debug
-        #print "%07d: note-%d-%d" % (note[3], note[2])
 
         left_mergine = 0
         if p == 0:
@@ -231,6 +235,7 @@ while(cap.isOpened()):
         prev_time = time
         prev_fire = p
         prev_notes = notes
+        prev_notes.append([0, 0, len(templates), time-first_time])
     
     ## circles detect multi... bad.
     #circles = cv2.HoughCircles(canny,cv2.HOUGH_GRADIENT,1,10, param1=20,param2=20,minRadius=10,maxRadius=20)
