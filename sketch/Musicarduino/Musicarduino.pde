@@ -46,6 +46,7 @@ bool readNextNote() {
 
 // ボタンが押されるたびに呼ばれる関数
 void push() {
+  Serial.println("PUSH");
   if (push_state == 0) {
     // 初めてボタンが押されたので処理を開始する
     push_state = 1;
@@ -56,8 +57,10 @@ void push() {
 
 // 演奏開始後1ms毎に呼ばれる関数(メインの処理)
 void timer() {
+//  Serial.println("TIMER");
   // 次のデータの時間になった
   if (time >= next_time) {
+    Serial.println("TIMER2");
     PORTB = data;
     if (!readNextNote()) return;
   }
@@ -80,6 +83,7 @@ void setup() {
   loadNote();  // リングバッファにデータをロードしておく
   MsTimer2::set(1, timer);     // 1ms毎にtimer( )割込み関数を呼び出す様に設定
   attachInterrupt(0, push, FALLING);  // PIN2がHIGH->LOW(ボタンが押された時)にpushを呼ぶ
+  Serial.println("START");
 }
 
 void loop() {
