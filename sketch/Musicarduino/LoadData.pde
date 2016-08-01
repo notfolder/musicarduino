@@ -3,7 +3,6 @@
  * リングバッファを抽象化
  * 実際のデータリードはMusicDataモジュールに抽象化する予定
  */
-#include <avr/pgmspace.h>
 typedef struct NOTE {
   byte data;
   byte t1;
@@ -23,11 +22,13 @@ struct NOTE *getNextNote() {
 
 bool loadNote() {
   while (!is_full()) {
+    //Serial.println("load...");
     NOTE *note = getLast();
     if (note == 0) return true;
-    bool ret = getNextNote(note);
+    bool ret = loadNextNote(note);
     enqueue();
     if (!ret) {
+      Serial.println("load Last!!");
       return false; // 終了マーク読み出し
     }
   }
@@ -41,8 +42,8 @@ void clearNote() {
   note_index_count = 0;
 }
 
-int getNextTime(NOTE *note) {
-  return note->t1 << 16 + note->t2 << 8 + note->t3;
+unsigned long getNextTime(NOTE *note) {
+  return ((unsigned long)note->t1 << 16) + ((unsigned long)note->t2 << 8) + note->t3;
 }
 
 int getData(NOTE *note) {
@@ -76,6 +77,8 @@ struct NOTE* dequeue(){
     return 0;
   }
   NOTE *x = &notes[note_index_read++];
+  //Serial.print("note: ");
+  //Serial.println(x->data, HEX);
   note_index_count--;
   if (note_index_read == BUFFER_SIZE)
     note_index_read = 0;

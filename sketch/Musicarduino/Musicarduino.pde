@@ -20,9 +20,9 @@ int        D13 =  13;  // Arduino:uno_r3
 // ボタンの状態制御
 volatile int push_state = 0;
 // 演奏時間
-volatile int time = 0;
+volatile unsigned long time = 0;
 // データを出力する時間
-volatile int next_time = 0;
+volatile unsigned long next_time = 0;
 // 次に出力するデータ
 volatile int data = 0;
 volatile int state = 0;
@@ -30,6 +30,7 @@ volatile int state = 0;
 bool readNextNote() {
     NOTE *note = getNextNote();
     if (note == 0) {
+      Serial.println("STOP");
       clearNote();
       time = 0;
       push_state = 0;
@@ -40,6 +41,7 @@ bool readNextNote() {
       return false;
     }
     next_time = getNextTime(note);
+    //Serial.println(next_time,HEX);
     data = getData(note);
     return true;
 }
@@ -60,7 +62,7 @@ void timer() {
 //  Serial.println("TIMER");
   // 次のデータの時間になった
   if (time >= next_time) {
-    Serial.println("TIMER2");
+//    Serial.println("TIMER2");
     PORTB = data;
     if (!readNextNote()) return;
   }
@@ -81,19 +83,24 @@ void setup() {
   pinMode(D13, OUTPUT);  // Arduino:uno_r3
 
   loadNote();  // リングバッファにデータをロードしておく
-  MsTimer2::set(1, timer);     // 1ms毎にtimer( )割込み関数を呼び出す様に設定
   attachInterrupt(0, push, FALLING);  // PIN2がHIGH->LOW(ボタンが押された時)にpushを呼ぶ
+  MsTimer2::set(1, timer);     // 1ms毎にtimer( )割込み関数を呼び出す様に設定
   Serial.println("START");
 }
 
 void loop() {
-  if (state = 0) {
+  if (state == 0) {
     // 常にバッファを貯めておく
     if (!loadNote()) {
       state = 1;
     }
   }
+/*
   delay(1);
+  digitalWrite(D8, HIGH);
+  delay(10);
+  digitalWrite(D8, LOW);
+  delay(1000);
+*/
 }
-
 

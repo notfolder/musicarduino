@@ -10,7 +10,7 @@ import sys
 map_note = [0x10, 0x1, 0x2, 0x4, 0x20]
 
 # 100ms後にフラグをクリアする(太鼓の達人最速で300bpm=200msなので、100msホールド・リリースで良い)
-time_mergine = 100
+time_mergine = 10
 
 for line in open(sys.argv[1],"r"):
     if line[0] == '#':
