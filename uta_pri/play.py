@@ -54,7 +54,7 @@ print "#" + str([base2_1,base2_2,base2_3])  # for debug
 # 判定マージン
 mergine = 1
 # 時間マージン
-time_mergine = 50
+time_mergine = 10
 # テンプレートマッチングの閾値
 threshold = 0.28
 
