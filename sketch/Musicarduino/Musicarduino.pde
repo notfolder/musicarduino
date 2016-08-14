@@ -95,11 +95,21 @@ void loop() {
       state = 1;
     }
   }
-/*
   delay(1);
+/*
   digitalWrite(D8, HIGH);
+  digitalWrite(D9, HIGH);
+  digitalWrite(D10, HIGH);
+  digitalWrite(D11, HIGH);
+  digitalWrite(D12, HIGH);
+  //PORTB = 0xFF;
   delay(10);
   digitalWrite(D8, LOW);
+  digitalWrite(D9, LOW);
+  digitalWrite(D10, LOW);
+  digitalWrite(D11, LOW);
+  digitalWrite(D12, LOW);
+  //PORTB = 0x00;
   delay(1000);
 */
 }

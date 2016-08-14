@@ -1,20 +1,29 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import cv2
 import sys
 
-left = 108
-right = 530
-right2 = 546
+# 譜面左端
+left = 199
+# 譜面右端
+right = 517
+# 譜面の画面の右端
+right2 = 529
 centor = (left + right)/2
 
-top = 139
-bottom = 259
+# 譜面トップ
+top = 200
+# 譜面ボトム
+bottom = 299
 
-base1 = 177
-base2 = 201
-base3 = 225
+# 3線の1番目
+base1 = 238
+# 3線の2番目
+base2 = 256
+base3 = 276
 
-base_diff = 88
+# y軸の差分
+base_diff = 69
 top2 = top + base_diff
 bottom2 = bottom + base_diff
 base2_1 = base1 + base_diff

@@ -9,11 +9,11 @@ if len(sys.argv) <= 1:
     exit(-1)
 
 # 譜面左端
-left = 108
+left = 199
 # 譜面右端
-right = 530
+right = 517
 # 譜面の画面の右端
-right2 = 547
+right2 = 529
 # 譜面真ん中(4小節目)
 centor = (left + right)/2
 # 1小節分の大きさ
@@ -21,20 +21,20 @@ measure = (right - left)/8
 
 # 1番目の譜面取得タイミング(4〜8小節目ノートを拾うタイミング)
 # 譜面トップ
-top = 139
+top = 200
 # 譜面ボトム
-bottom = 260
+bottom = 299
 
 # 3線の1番目
-base1 = 177
+base1 = 238
 # 3線の2番目
-base2 = 201
+base2 = 256
 # 3線の3番目
-base3 = 225
+base3 = 276
 
 # 1番目の譜面取得タイミング(1〜3小節目ノートを拾うタイミング)
 # y軸の差分
-base_diff = 88
+base_diff = 69
 base_diff_measure = base_diff/1
 top2 = top + base_diff
 bottom2 = bottom + base_diff
@@ -117,7 +117,8 @@ while(cap.isOpened()):
     #    cv2.line(draw,(x1,y1),(x2,y2),(0,255,0),2)
 
     ## lines fast and detect. good.
-    lines = cv2.HoughLines(canny,1,np.pi/10,200)
+    #lines = cv2.HoughLines(canny,1,np.pi/10,200)
+    lines = cv2.HoughLines(canny,1,np.pi/10,250)
     #count = [0]
     #count = count * len(bases)
     count = 0
@@ -248,7 +249,7 @@ while(cap.isOpened()):
 
     ## template match slow!!! and detect low
     ## button detect testing..
-    #matches = cv2.matchTemplate(canny, x_template, cv2.TM_CCOEFF_NORMED);
+    matches = cv2.matchTemplate(canny, template[0], cv2.TM_CCOEFF_NORMED);
     #threshold = 0.5
     #for y in xrange(matches.shape[0]):
     #    for x in xrange(matches.shape[1]):
@@ -271,6 +272,7 @@ while(cap.isOpened()):
                 y2 = int(y0 - 1000*(a))
                 cv2.line(draw,(x1,y1),(x2,y2),(0,0,255),2)
         cv2.imwrite("capture.png", draw);
+        cv2.imwrite("capture-canny.png", canny);
         break
 
 cap.release()
